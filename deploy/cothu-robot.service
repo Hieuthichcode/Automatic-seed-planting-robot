@@ -1,0 +1,31 @@
+[Unit]
+Description=Co Thu Robot Raspberry Pi control service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+SupplementaryGroups=dialout video gpio i2c spi
+WorkingDirectory=/home/pi/Desktop/Automatic-seed-planting-robot
+Environment=PYTHONUNBUFFERED=1
+Environment=ROBOT_CAMERA_DEVICE=/dev/robot-camera-color
+Environment=ROBOT_ARM_ENABLED=0
+Environment=OMP_NUM_THREADS=2
+Environment=OPENBLAS_NUM_THREADS=2
+Environment=NUMEXPR_NUM_THREADS=2
+ExecStart=/home/pi/Desktop/Automatic-seed-planting-robot/.venv/bin/python -u run_service.py
+Restart=always
+RestartSec=3
+TimeoutStopSec=15
+KillSignal=SIGINT
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=false
+
+[Install]
+WantedBy=multi-user.target

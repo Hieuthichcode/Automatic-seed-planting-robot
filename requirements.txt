@@ -1,5 +1,6 @@
 # Core: Flask server, serial links, camera/image processing and Lidar test UI.
 Flask
+waitress>=3,<4
 pyserial
 numpy
 opencv-python

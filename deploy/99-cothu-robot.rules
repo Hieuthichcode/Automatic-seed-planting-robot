@@ -1,0 +1,12 @@
+# Stable RGB node for the Intel RealSense D435 color interface. The interface
+# name and video index belong to one udev parent chain, unlike USB VID/PID and
+# bInterfaceNumber, which cannot be matched together reliably in one rule.
+SUBSYSTEM=="video4linux", KERNEL=="video*", ATTR{index}=="0", ATTRS{interface}=="Intel(R) RealSense(TM) Depth Camera 435 with RGB Module RGB", SYMLINK+="robot-camera-color", GROUP="video", MODE="0660"
+
+# Stable serial names. The two ESP32-C3 boards expose unique USB serial IDs.
+SUBSYSTEM=="tty", ENV{ID_SERIAL}=="Espressif_USB_JTAG_serial_debug_unit_9C:CC:01:A8:60:FC", SYMLINK+="robot-gps-imu", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ENV{ID_SERIAL}=="Espressif_USB_JTAG_serial_debug_unit_58:8C:81:A6:2F:A8", SYMLINK+="robot-lidar", GROUP="dialout", MODE="0660"
+
+# Only one CH340 is installed. Keep a stable diagnostic name, but do not point
+# the service here until controller power/firmware diagnostics are completed.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="robot-controller", GROUP="dialout", MODE="0660"

@@ -39,6 +39,8 @@
     }
 
     button {
+      --button-bg: #1a73e8;
+      --button-hover-bg: #0d47a1;
       flex: 1;
       margin: 5px;
       padding: 10px;
@@ -46,22 +48,67 @@
       border-radius: 6px;
       font-size: 16px;
       cursor: pointer;
-      background-color: #1a73e8;
+      background-color: var(--button-bg);
       color: white;
-      transition: 0.3s;
+      transition: background-color 0.2s ease, transform 0.2s ease,
+                  box-shadow 0.2s ease, opacity 0.2s ease;
     }
 
-    button:hover {
-      background-color: #0d47a1;
+    button:not(:disabled):hover {
+      background-color: var(--button-hover-bg);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+      transform: translateY(-1px);
+    }
+
+    button:not(:disabled):active {
+      box-shadow: none;
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .button-warning {
+      --button-bg: #ff9800;
+      --button-hover-bg: #e68900;
+    }
+
+    .button-danger {
+      --button-bg: #ff5252;
+      --button-hover-bg: #d93636;
+    }
+
+    .button-success {
+      --button-bg: #4caf50;
+      --button-hover-bg: #388e3c;
+    }
+
+    .button-purple {
+      --button-bg: #9c27b0;
+      --button-hover-bg: #7b1fa2;
+    }
+
+    .button-cyan {
+      --button-bg: #00bcd4;
+      --button-hover-bg: #008ba3;
+    }
+
+    .button-blue {
+      --button-bg: #1565c0;
+      --button-hover-bg: #0d47a1;
     }
 
     .map-types button {
-      background-color: #ccc;
+      --button-bg: #ccc;
+      --button-hover-bg: #b5b5b5;
       color: #333;
     }
 
     .map-types button.active {
-      background-color: #1a73e8;
+      --button-bg: #1a73e8;
+      --button-hover-bg: #0d47a1;
       color: white;
     }
 
@@ -161,13 +208,13 @@
         <div style="background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 16px;">
           <h3 style="text-align:center; color:#1a73e8; margin-bottom:12px;">Control Panel</h3>
           <button id="btnStart" style="width:100%; margin-bottom:8px;" disabled>Bắt đầu</button>
-          <button id="btnPause" style="width:100%; margin-bottom:8px; background-color:#ff9800; color:white;" disabled>Tạm dừng</button>
-          <button id="btnStop" style="width:100%; margin-bottom:8px; background-color:#ff5252; color:white;" disabled>Dừng</button>
-          <button id="btnDetection" style="width:100%; margin-bottom:8px; background-color:#4CAF50; color:white;" onclick="goToDetection()">🎯 Detection</button>
-          <button id="btnLidar" style="width:100%; margin-bottom:8px; background-color:#9C27B0; color:white;" onclick="goToLidar()">📡 LIDAR</button>
-          <button id="btnArm" style="width:100%; margin-bottom:8px; background-color:#00BCD4; color:white;" onclick="goToArm()">🦾 Cánh tay</button>
-          <button id="btnDepth" style="width:100%; margin-bottom:8px; background-color:#1565C0; color:white;" onclick="goToDepth()">🔵 Depth Camera</button>
-          <button id="btnConfig" style="width:100%; background-color:#FF9800; color:white;" onclick="goToConfig()">⚙️ Cấu hình</button>
+          <button id="btnPause" class="button-warning" style="width:100%; margin-bottom:8px;" disabled>Tạm dừng</button>
+          <button id="btnStop" class="button-danger" style="width:100%; margin-bottom:8px;" disabled>Dừng</button>
+          <button id="btnDetection" class="button-success" style="width:100%; margin-bottom:8px;" onclick="goToDetection()">🎯 Detection</button>
+          <button id="btnLidar" class="button-purple" style="width:100%; margin-bottom:8px;" onclick="goToLidar()">📡 LIDAR</button>
+          <button id="btnArm" class="button-cyan" style="width:100%; margin-bottom:8px;" onclick="goToArm()">🦾 Cánh tay</button>
+          <button id="btnDepth" class="button-blue" style="width:100%; margin-bottom:8px;" onclick="goToDepth()">🔵 Depth Camera</button>
+          <button id="btnConfig" class="button-warning" style="width:100%;" onclick="goToConfig()">⚙️ Cấu hình</button>
         </div>
       </div>
       <div style="flex: 2;">

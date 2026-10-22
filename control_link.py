@@ -40,6 +40,8 @@ class ControlLink:
         self._force_stop_until = 0.0
         self._identified = False
         self._diagnostic_buffer = ""
+        self._last_error_text = ""
+        self._last_error_log_monotonic = 0.0
 
     def start(self):
         if self._thread is not None and self._thread.is_alive():
@@ -81,6 +83,18 @@ class ControlLink:
             self._connected = value
             if not value:
                 self._identified = False
+
+    def _log_serial_error(self, exc):
+        """Avoid filling journald while a configured USB device is unplugged."""
+        message = str(exc)
+        now = time.monotonic()
+        if (
+            message != self._last_error_text
+            or now - self._last_error_log_monotonic >= 300.0
+        ):
+            print(f"[CtrlLink] Serial error: {message}")
+            self._last_error_text = message
+            self._last_error_log_monotonic = now
 
     def _consume_diagnostics(self, data):
         self._diagnostic_buffer += data.decode(errors="ignore")
@@ -216,7 +230,7 @@ class ControlLink:
 
             except Exception as exc:
                 if not self._stop_event.is_set():
-                    print(f"[CtrlLink] Serial error: {exc}")
+                    self._log_serial_error(exc)
                     self._shared_data.invalidate_motion_for_link_loss()
             finally:
                 self._close_serial()

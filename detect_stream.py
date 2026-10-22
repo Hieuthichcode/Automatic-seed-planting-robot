@@ -12,7 +12,7 @@ try:
     print("[INFO] pyrealsense2 found – using RealSense D435")
 except ImportError:
     _HAS_REALSENSE = False
-    print("[WARNING] pyrealsense2 not found – falling back to cv2.VideoCapture(0)")
+    print("[WARNING] pyrealsense2 not found – using the configured OpenCV camera")
 
 # Try import TFLite runtime, fallback to TensorFlow if not available
 try:
@@ -39,6 +39,7 @@ CONF_THRESH = 0.3
 NMS_THRESH = 0.4
 CLASS_FILE = os.path.join(APP_DIR, "classes.txt")
 SKIP_FRAMES = 2
+OPENCV_CAMERA_DEVICE = os.environ.get("ROBOT_CAMERA_DEVICE", "0").strip()
 
 # ===================== ENV TWEAKS =====================
 os.environ["OMP_NUM_THREADS"] = str(NUM_THREADS)
@@ -476,10 +477,21 @@ def init_camera():
             return False
     else:
         if cap is None or not cap.isOpened():
-            cap = cv2.VideoCapture(0)
+            camera_source = (
+                int(OPENCV_CAMERA_DEVICE)
+                if OPENCV_CAMERA_DEVICE.isdigit()
+                else OPENCV_CAMERA_DEVICE
+            )
+            cap = cv2.VideoCapture(camera_source)
             if cap.isOpened():
                 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                print("[Camera] OpenCV VideoCapture initialized")
+                cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                cap.set(cv2.CAP_PROP_FPS, 30)
+                print(
+                    "[Camera] OpenCV VideoCapture initialized: "
+                    f"{OPENCV_CAMERA_DEVICE}"
+                )
                 return True
         return cap is not None and cap.isOpened()
 

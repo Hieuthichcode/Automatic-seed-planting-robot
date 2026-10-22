@@ -91,6 +91,8 @@ _state_lock = threading.Lock()
 _start_lock = threading.Lock()
 _stop_event = threading.Event()
 _reader_thread = None
+_last_error_text = ""
+_last_error_log_monotonic = 0.0
 
 
 def _set_connection(serial_port, is_connected):
@@ -103,6 +105,7 @@ def _set_connection(serial_port, is_connected):
 def read_lidar_serial(port, baudrate):
     """Own the Lidar port and reconnect until ``stop_lidar`` is called."""
     global last_valid_point_monotonic
+    global _last_error_text, _last_error_log_monotonic
 
     while not _stop_event.is_set():
         serial_port = None
@@ -113,6 +116,7 @@ def read_lidar_serial(port, baudrate):
                 timeout=LIDAR_SERIAL_TIMEOUT_SEC,
             )
             _set_connection(serial_port, True)
+            _last_error_text = ""
             print(f"[LIDAR] Connected to {port} @ {baudrate}")
 
             while not _stop_event.is_set():
@@ -130,7 +134,15 @@ def read_lidar_serial(port, baudrate):
 
         except Exception as exc:
             if not _stop_event.is_set():
-                print(f"[LIDAR] Connection/read error: {exc}")
+                message = str(exc)
+                now = time.monotonic()
+                if (
+                    message != _last_error_text
+                    or now - _last_error_log_monotonic >= 30.0
+                ):
+                    print(f"[LIDAR] Connection/read error: {message}")
+                    _last_error_text = message
+                    _last_error_log_monotonic = now
         finally:
             if serial_port is not None:
                 try:

@@ -271,7 +271,8 @@ def lidar_monitor_thread(shared_data):
             lidar_valid = Read_lidar.is_data_fresh()
 
             current_time = time.monotonic()
-            if current_time - last_config_print > 10:
+            # The values rarely change; avoid filling journald during long runs.
+            if current_time - last_config_print > 300:
                 print(f"[LIDAR Monitor] Current config: Distance={obstacle_dist}mm, Angle=[{angle_min}° to {angle_max}°]")
                 last_config_print = current_time
 
@@ -299,16 +300,16 @@ def lidar_monitor_thread(shared_data):
                     distance_value,
                     valid=True,
                 )
-                state = ("obstacle" if has_obstacle else "clear", int(distance_value))
+                state = "obstacle" if has_obstacle else "clear"
             else:
                 # Sensor state is unknown, therefore MANUAL_GUARD must stop.
                 shared_data.set_lidar_obstacle(True, 9999, valid=False)
-                state = ("sensor_invalid", 9999)
+                state = "sensor_invalid"
 
             if state != last_state:
-                if state[0] == "obstacle":
-                    print(f"[LIDAR Monitor] ⚠️ OBSTACLE: {state[1]}mm")
-                elif state[0] == "clear":
+                if state == "obstacle":
+                    print(f"[LIDAR Monitor] ⚠️ OBSTACLE: {int(distance_value)}mm")
+                elif state == "clear":
                     print("[LIDAR Monitor] ✅ Clear; manual-allow restored")
                 else:
                     print("[LIDAR Monitor] ⚠️ Sensor missing/stale; movement denied")
@@ -320,7 +321,7 @@ def lidar_monitor_thread(shared_data):
             print(f"[LIDAR Monitor] Error: {e}")
             # Never preserve a previous allow decision after the monitor fails.
             shared_data.set_lidar_obstacle(True, 9999, valid=False)
-            last_state = ("monitor_error", 9999)
+            last_state = "monitor_error"
             time.sleep(0.5)
 
 # Khởi động LIDAR monitor thread

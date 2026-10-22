@@ -14,6 +14,7 @@ Pulse width chuẩn servo:
   Tần số: 50 Hz
 """
 
+import os
 import time
 
 # ===================== Cấu hình =====================
@@ -30,18 +31,27 @@ SERVO_MAX_US  = 2500    # μs tại 180°
 
 # ===================== Phát hiện thư viện =====================
 _mode = "simulation"  # "pigpio" | "rpigpio" | "simulation"
+_ARM_ENABLED = os.environ.get("ROBOT_ARM_ENABLED", "1").strip().lower() in {
+    "1", "true", "yes", "on"
+}
 
-try:
-    import pigpio
-    _USE_PIGPIO = True
-except ImportError:
+if _ARM_ENABLED:
+    try:
+        import pigpio
+        _USE_PIGPIO = True
+    except ImportError:
+        _USE_PIGPIO = False
+else:
     _USE_PIGPIO = False
 
 if not _USE_PIGPIO:
-    try:
-        import RPi.GPIO as GPIO
-        _USE_RPIGPIO = True
-    except (ImportError, RuntimeError):
+    if _ARM_ENABLED:
+        try:
+            import RPi.GPIO as GPIO
+            _USE_RPIGPIO = True
+        except (ImportError, RuntimeError):
+            _USE_RPIGPIO = False
+    else:
         _USE_RPIGPIO = False
 else:
     _USE_RPIGPIO = False
@@ -75,6 +85,12 @@ def init_servos() -> bool:
 
     if _initialized:
         return _mode != "simulation"
+
+    if not _ARM_ENABLED:
+        _mode = "simulation"
+        _initialized = True
+        print("[ARM] GPIO disabled by ROBOT_ARM_ENABLED=0; simulation mode")
+        return False
 
     if _USE_PIGPIO:
         try:
