@@ -8,6 +8,12 @@ import time
 import serial
 
 from config import (
+    AUTO_FORWARD_COMMAND,
+    AUTO_MOVE_FORWARD,
+    AUTO_MOVE_PIVOT_LEFT,
+    AUTO_MOVE_PIVOT_RIGHT,
+    AUTO_MOVE_STOP,
+    AUTO_TURN_COMMAND,
     CONTROL_HEARTBEAT_HZ,
     CONTROL_RECONNECT_DELAY_SEC,
     CONTROL_STARTUP_STOP_FRAMES,
@@ -21,6 +27,23 @@ from control_protocol import (
     ControlFlags,
     ControlMode,
     serialize_command,
+)
+
+
+def _validated_auto_command(value, name):
+    value = int(value)
+    if not 1 <= value <= 1000:
+        raise ValueError(f"{name} must be in 1..1000")
+    return value
+
+
+AUTO_FORWARD_VALUE = _validated_auto_command(
+    AUTO_FORWARD_COMMAND,
+    "AUTO_FORWARD_COMMAND",
+)
+AUTO_TURN_VALUE = _validated_auto_command(
+    AUTO_TURN_COMMAND,
+    "AUTO_TURN_COMMAND",
 )
 
 
@@ -165,19 +188,32 @@ class ControlLink:
         route_running = bool(snapshot["route_running"])
         mode = ControlMode.AUTO if route_running else ControlMode.MANUAL_GUARD
 
-        # AUTO motion/turn is deliberately left disabled until the drive
-        # behavior is approved and tested.  The ESP32 also enforces AUTO_STOP.
         throttle = 0
         turn = 0
+        move_cmd = int(snapshot.get("move_cmd", AUTO_MOVE_STOP))
+        auto_command_valid = True
+        if route_running:
+            if move_cmd == AUTO_MOVE_FORWARD:
+                throttle = AUTO_FORWARD_VALUE
+            elif move_cmd == AUTO_MOVE_PIVOT_LEFT:
+                turn = -AUTO_TURN_VALUE
+            elif move_cmd == AUTO_MOVE_PIVOT_RIGHT:
+                turn = AUTO_TURN_VALUE
+            elif move_cmd != AUTO_MOVE_STOP:
+                auto_command_valid = False
+
         must_stop = (
             startup_stop
             or self._forced_stop_active()
             or not lidar_valid
             or obstacle
-            or route_running
+            or (route_running and move_cmd == AUTO_MOVE_STOP)
+            or (route_running and not auto_command_valid)
         )
         if must_stop:
             flags |= ControlFlags.STOP_REQUEST
+            throttle = 0
+            turn = 0
         if startup_stop:
             mode = ControlMode.STOP
 

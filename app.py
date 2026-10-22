@@ -19,7 +19,12 @@ import os
 import secrets
 import cv2
 import numpy as np
-from Read_Serial import SerialData, start_serial_thread, execute_route_commands
+from Read_Serial import (
+    SerialData,
+    execute_route_commands,
+    start_serial_thread,
+    validate_route_commands,
+)
 from config import (AUTO_DRIVE_ENABLED, FLASK_HOST, FLASK_PORT, GOOGLE_MAPS_API_KEY, LIDAR_PORT, LIDAR_BAUDRATE,
                     LIDAR_OBSTACLE_DISTANCE, LIDAR_DETECTION_ANGLE_MIN, LIDAR_DETECTION_ANGLE_MAX)
 from control_link import ControlLink
@@ -491,23 +496,61 @@ def start_route():
             mimetype="text/plain",
         )
 
-    dis = request.form.get("dis", "")
-    dir_ = request.form.get("dir", "")
-    dir_val = request.form.get("dir_value", "")
-    # Chuyển thành list số
-    dis_list = [float(x) for x in dis.split(",") if x]
-    dir_list = [int(x) for x in dir_.split(",") if x]
-    dir_value_list = [float(x) for x in dir_val.split(",") if x]
+    if shared_data.get_route_state()["running"]:
+        return Response("Một hành trình AUTO đang chạy", status=409, mimetype="text/plain")
+
+    try:
+        dis = request.form.get("dis", "")
+        dir_ = request.form.get("dir", "")
+        dir_val = request.form.get("dir_value", "")
+        dis_list, dir_list, dir_value_list = validate_route_commands(
+            [float(x) for x in dis.split(",") if x],
+            [int(x) for x in dir_.split(",") if x],
+            [float(x) for x in dir_val.split(",") if x],
+        )
+    except ValueError as exc:
+        return Response(f"Dữ liệu hành trình không hợp lệ: {exc}", status=400, mimetype="text/plain")
+
+    controller_status = control_link.get_status()
+    if not controller_status["connected"] or not controller_status["identified"]:
+        return Response(
+            "ESP32 điều khiển chưa kết nối hoặc chưa được nhận diện",
+            status=503,
+            mimetype="text/plain",
+        )
+    if not shared_data.imu_is_fresh():
+        return Response("Dữ liệu IMU chưa sẵn sàng", status=503, mimetype="text/plain")
+    lidar_status = shared_data.get_lidar_obstacle()
+    if not lidar_status["valid"]:
+        return Response("Dữ liệu LIDAR chưa sẵn sàng", status=503, mimetype="text/plain")
+    if lidar_status["detected"]:
+        return Response("Đang có vật cản phía trước", status=409, mimetype="text/plain")
+
+    if not shared_data.try_begin_route(len(dis_list)):
+        return Response("Một hành trình AUTO đang chạy", status=409, mimetype="text/plain")
+
     print(f"[START ROUTE] dis={dis_list}")
     print(f"[START ROUTE] dir={dir_list}")
     print(f"[START ROUTE] dir_value={dir_value_list}")
-    threading.Thread(target=execute_route_commands, args=(shared_data, dis_list, dir_list, dir_value_list), daemon=True).start()
+    try:
+        threading.Thread(
+            target=execute_route_commands,
+            args=(shared_data, dis_list, dir_list, dir_value_list, True),
+            daemon=True,
+            name="auto-route",
+        ).start()
+    except Exception:
+        shared_data.set_move_cmd(0)
+        shared_data.set_route_state(running=False, paused=False, stopped=True)
+        control_link.request_stop()
+        raise
     return Response("Route started", mimetype="text/plain")
 
 @app.route("/pauseRoute", methods=["POST"])
 def pause_route():
     """Tạm dừng route"""
     shared_data.set_route_state(paused=True)
+    shared_data.set_move_cmd(0)
     print("[PAUSE ROUTE] Route paused")
     return Response("Route paused", mimetype="text/plain")
 

@@ -11,7 +11,18 @@ CONTROL_WRITE_TIMEOUT_SEC = 0.05
 CONTROL_RECONNECT_DELAY_SEC = 2.0
 CONTROL_STARTUP_STOP_FRAMES = 5
 CONTROL_STOP_PULSE_SEC = 0.5
-AUTO_DRIVE_ENABLED = False  # TODO: chỉ bật sau khi kiểm thử chuyển động/quay
+AUTO_DRIVE_ENABLED = True
+# Giá trị packet chuẩn hóa trong miền 0..1000; ESP32 đổi sang PWM 0..255.
+AUTO_FORWARD_COMMAND = 700
+AUTO_TURN_COMMAND = 600
+# Giữ ít nhất ba heartbeat STOP khi đổi giữa đi thẳng và quay tại chỗ.
+AUTO_TRANSITION_STOP_SEC = 0.12
+# Thời gian tối đa đang phát lệnh quay cho một đoạn; quá hạn thì hủy route.
+AUTO_TURN_TIMEOUT_SEC = 15.0
+AUTO_MOVE_STOP = 0
+AUTO_MOVE_FORWARD = 1
+AUTO_MOVE_PIVOT_LEFT = 2
+AUTO_MOVE_PIVOT_RIGHT = 3
 
 # # Serial cấu hình
 # SERIAL_PORT = "/dev/ttyACM1"   # hoặc /dev/ttyACM0 nếu ESP32-C3 hiển thị vậy

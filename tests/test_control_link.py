@@ -8,6 +8,7 @@ sys.path.insert(0, str(MODULE_DIR))
 
 from control_link import ControlLink  # noqa: E402
 from control_protocol import ControlFlags, ControlMode  # noqa: E402
+from config import AUTO_FORWARD_COMMAND, AUTO_TURN_COMMAND  # noqa: E402
 
 
 class FakeSharedData:
@@ -53,14 +54,64 @@ class ControlLinkStateTests(unittest.TestCase):
         self.assertTrue(command.flags & ControlFlags.STOP_REQUEST)
         self.assertFalse(command.flags & ControlFlags.LIDAR_VALID)
 
-    def test_auto_motion_remains_todo_and_stopped(self):
+    def test_auto_forward_maps_to_throttle(self):
         command = ControlLink(FakeSharedData(
             route_running=True,
             move_cmd=1,
         ))._build_command(False)
         self.assertEqual(command.mode, ControlMode.AUTO)
+        self.assertEqual(command.throttle, AUTO_FORWARD_COMMAND)
+        self.assertEqual(command.turn, 0)
+        self.assertFalse(command.flags & ControlFlags.STOP_REQUEST)
+
+    def test_auto_left_maps_to_negative_pivot(self):
+        command = ControlLink(FakeSharedData(
+            route_running=True,
+            move_cmd=2,
+        ))._build_command(False)
+        self.assertEqual(command.mode, ControlMode.AUTO)
+        self.assertEqual(command.throttle, 0)
+        self.assertEqual(command.turn, -AUTO_TURN_COMMAND)
+        self.assertFalse(command.flags & ControlFlags.STOP_REQUEST)
+
+    def test_auto_right_maps_to_positive_pivot(self):
+        command = ControlLink(FakeSharedData(
+            route_running=True,
+            move_cmd=3,
+        ))._build_command(False)
+        self.assertEqual(command.mode, ControlMode.AUTO)
+        self.assertEqual(command.throttle, 0)
+        self.assertEqual(command.turn, AUTO_TURN_COMMAND)
+        self.assertFalse(command.flags & ControlFlags.STOP_REQUEST)
+
+    def test_auto_idle_is_an_explicit_stop(self):
+        command = ControlLink(FakeSharedData(
+            route_running=True,
+            move_cmd=0,
+        ))._build_command(False)
+        self.assertEqual(command.mode, ControlMode.AUTO)
         self.assertEqual(command.throttle, 0)
         self.assertEqual(command.turn, 0)
+        self.assertTrue(command.flags & ControlFlags.STOP_REQUEST)
+
+    def test_unknown_auto_command_fails_safe(self):
+        command = ControlLink(FakeSharedData(
+            route_running=True,
+            move_cmd=99,
+        ))._build_command(False)
+        self.assertEqual(command.throttle, 0)
+        self.assertEqual(command.turn, 0)
+        self.assertTrue(command.flags & ControlFlags.STOP_REQUEST)
+
+    def test_obstacle_overrides_auto_forward(self):
+        command = ControlLink(FakeSharedData(
+            route_running=True,
+            move_cmd=1,
+            lidar_detected=True,
+        ))._build_command(False)
+        self.assertEqual(command.throttle, 0)
+        self.assertEqual(command.turn, 0)
+        self.assertTrue(command.flags & ControlFlags.OBSTACLE)
         self.assertTrue(command.flags & ControlFlags.STOP_REQUEST)
 
     def test_startup_frames_are_stop_mode(self):

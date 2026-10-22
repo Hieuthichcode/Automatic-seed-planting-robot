@@ -7,7 +7,12 @@ import unittest
 MODULE_DIR = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(MODULE_DIR))
 
-from Read_Serial import parse_gps_imu_line, signed_angle_delta  # noqa: E402
+from Read_Serial import (  # noqa: E402
+    SerialData,
+    parse_gps_imu_line,
+    signed_angle_delta,
+    validate_route_commands,
+)
 from Read_lidar import parse_lidar_line  # noqa: E402
 
 
@@ -42,6 +47,32 @@ class SensorParserTests(unittest.TestCase):
     def test_yaw_delta_wraps_at_180(self):
         self.assertAlmostEqual(signed_angle_delta(-179.0, 179.0), 2.0)
         self.assertAlmostEqual(signed_angle_delta(179.0, -179.0), -2.0)
+
+    def test_route_validation_accepts_old_auto_shape(self):
+        route = validate_route_commands([1, 2.5], [-1, 0], [90, 0])
+        self.assertEqual(route, ([1.0, 2.5], [-1, 0], [90.0, 0.0]))
+
+    def test_route_validation_rejects_mismatched_arrays(self):
+        with self.assertRaises(ValueError):
+            validate_route_commands([1], [-1, 0], [90])
+
+    def test_route_validation_rejects_invalid_values(self):
+        invalid_routes = [
+            ([0], [0], [0]),
+            ([1], [2], [90]),
+            ([1], [-1], [0]),
+            ([1], [1], [181]),
+        ]
+        for route in invalid_routes:
+            with self.subTest(route=route), self.assertRaises(ValueError):
+                validate_route_commands(*route)
+
+    def test_route_reservation_is_atomic(self):
+        shared = SerialData()
+        self.assertTrue(shared.try_begin_route(2))
+        self.assertFalse(shared.try_begin_route(2))
+        self.assertTrue(shared.get_route_state()["running"])
+        self.assertEqual(shared.get_move_cmd(), 0)
 
     def test_lidar_three_field_firmware_format(self):
         self.assertEqual(parse_lidar_line("450.5 90.0 123"), (450.5, 90.0, 123.0))

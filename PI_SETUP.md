@@ -45,11 +45,20 @@ sudo systemctl daemon-reload
 sudo systemctl restart cothu-robot.service
 ```
 
-AUTO vẫn bị khóa bởi `AUTO_TODO`; không coi đây là lỗi triển khai.
+AUTO đã được triển khai ở phía Python và firmware ESP32 với ba lệnh rời rạc:
+đi thẳng, quay trái tại chỗ và quay phải tại chỗ. Route chỉ được nhận khi
+controller đã kết nối/nhận diện, IMU còn tươi và LIDAR hợp lệ/không có vật cản;
+mất dữ liệu, timeout hoặc đổi pha đều đưa lệnh về STOP.
+
+Trên Pi hiện tại, AUTO vẫn **không thể phát chuyển động thật** vì service cố ý
+trỏ `CONTROL_PORT` đến `/dev/robot-controller-disabled` trong khi controller
+CH340/ESP32 còn lặp brownout/watchdog. Đây là khóa an toàn phần cứng, không phải
+lỗi của route AUTO. Chỉ trả controller về `/dev/robot-controller` sau khi sửa
+nguồn/firmware và kiểm thử với bánh được kê.
 
 ## Kết quả kiểm tra
 
-- 31 bài test trên Pi: đạt.
+- 40 bài test Python trên Pi (kèm 4 subtests): đạt.
 - Web/API và mDNS: đạt.
 - Toàn bộ nút trên giao diện chính có trạng thái hover/active đồng nhất; nút
   disabled giảm opacity và không đổi màu khi rê chuột.
@@ -66,11 +75,18 @@ AUTO vẫn bị khóa bởi `AUTO_TODO`; không coi đây là lỗi triển khai
 
 ## Giới hạn còn lại
 
-`pyrealsense2` không có wheel phù hợp với userland `armhf` đang dùng. RGB hoạt
-động qua OpenCV/V4L2, nhưng trang depth chưa hoạt động. Muốn dùng depth nên
-chuyển sang Raspberry Pi OS 64-bit rồi cài binding phù hợp, hoặc tự biên dịch
-librealsense. LIDAR đã kết nối và cho dữ liệu tươi. Controller và chuyển động
-servo phải được kiểm tra lại sau khi xử lý nguồn/firmware của controller.
+RealSense D435 được nhận đúng ở USB 3.0 5 Gbit/s và kernel tạo đủ
+`/dev/video0..5`. Đã đọc trực tiếp thành công một frame depth Z16 640x480 từ
+`/dev/video0` (614.400 byte), nên cảm biến depth và đường USB đang hoạt động.
+Trang depth trả HTTP 503 vì ứng dụng bắt buộc import `pyrealsense2`, trong khi
+Pi dùng userland 32-bit `armhf` và virtualenv chưa có binding này; cũng chưa có
+`librealsense`/`rs-enumerate-devices` trên hệ thống. Wheel chính thức hiện có
+cho ARM64 (`aarch64`), không phải `armhf`. Hướng ít rủi ro nhất là dùng
+Raspberry Pi OS 64-bit với phiên bản Python khớp wheel; phương án còn lại là tự
+biên dịch librealsense và Python binding trên hệ điều hành hiện tại.
+
+LIDAR đã kết nối và cho dữ liệu tươi. Controller và chuyển động servo phải được
+kiểm tra lại sau khi xử lý nguồn/firmware của controller.
 
 Vì web điều khiển đang phục vụ trong mạng LAN và cấu hình đăng nhập còn đơn
 giản, không mở cổng 80 trực tiếp ra Internet. Nên đổi mật khẩu tài khoản Pi và
