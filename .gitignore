@@ -1,0 +1,14 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local virtual environments and environment variables
+.venv/
+venv/
+.env
+
+# Runtime logs and operating-system metadata
+*.log
+.DS_Store
+Thumbs.db

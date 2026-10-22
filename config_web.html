@@ -79,7 +79,8 @@
         }
 
         .form-group input[type="number"],
-        .form-group input[type="text"] {
+        .form-group input[type="text"],
+        .form-group select {
             width: 100%;
             padding: 12px;
             border: 2px solid #ddd;
@@ -177,6 +178,92 @@
             margin-left: 10px;
         }
 
+        .serial-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .serial-row select {
+            flex: 1;
+        }
+
+        .btn-test {
+            flex: 0 0 auto;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            background: #009688;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-test:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .port-status {
+            display: block;
+            min-height: 20px;
+            margin-top: 8px;
+            font-size: 0.88em;
+            font-weight: 600;
+        }
+
+        .port-status.testing { color: #856404; }
+        .port-status.success { color: #155724; }
+        .port-status.error { color: #721c24; }
+
+        .feature-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 14px 0;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 58px;
+            height: 32px;
+            flex: 0 0 auto;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            inset: 0;
+            cursor: pointer;
+            background: #b0bec5;
+            border-radius: 32px;
+            transition: 0.25s;
+        }
+
+        .slider::before {
+            content: "";
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            left: 4px;
+            top: 4px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.25s;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .switch input:checked + .slider { background: #2e7d32; }
+        .switch input:checked + .slider::before { transform: translateX(26px); }
+        .switch input:focus + .slider { box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2); }
+
         @media (max-width: 600px) {
             .button-group {
                 flex-direction: column;
@@ -197,6 +284,84 @@
 
         <div id="statusMessage" class="status-message"></div>
 
+        <!-- Serial ports -->
+        <div class="config-section">
+            <h2>🔌 Cổng COM thiết bị</h2>
+            <div class="description" style="margin-bottom: 20px;">
+                Khi chọn cổng, hệ thống sẽ tự kiểm tra định dạng dữ liệu để tránh gán nhầm thiết bị.
+                Thay đổi cổng chỉ có hiệu lực sau khi lưu vĩnh viễn và khởi động lại ứng dụng.
+            </div>
+
+            <div class="form-group">
+                <label for="gpsImuPort">GPS/IMU</label>
+                <div class="serial-row">
+                    <select id="gpsImuPort" onchange="testSerialPort('gps_imu', 'gpsImuPort', 'gpsImuPortStatus', this.nextElementSibling)"></select>
+                    <button class="btn-test" type="button" onclick="testSerialPort('gps_imu', 'gpsImuPort', 'gpsImuPortStatus', this)">Kiểm tra</button>
+                </div>
+                <span id="gpsImuPortStatus" class="port-status"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="controlPort">ESP32 điều khiển chính</label>
+                <div class="serial-row">
+                    <select id="controlPort" onchange="testSerialPort('controller', 'controlPort', 'controlPortStatus', this.nextElementSibling)"></select>
+                    <button class="btn-test" type="button" onclick="testSerialPort('controller', 'controlPort', 'controlPortStatus', this)">Kiểm tra</button>
+                </div>
+                <span id="controlPortStatus" class="port-status"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="lidarPort">Lidar</label>
+                <div class="serial-row">
+                    <select id="lidarPort" onchange="testSerialPort('lidar', 'lidarPort', 'lidarPortStatus', this.nextElementSibling)"></select>
+                    <button class="btn-test" type="button" onclick="testSerialPort('lidar', 'lidarPort', 'lidarPortStatus', this)">Kiểm tra</button>
+                </div>
+                <span id="lidarPortStatus" class="port-status"></span>
+            </div>
+
+            <button class="btn-test" type="button" onclick="loadConfig()">Làm mới danh sách cổng</button>
+        </div>
+
+        <!-- 2D image processing -->
+        <div class="config-section">
+            <h2>🖼️ Xử lý ảnh 2D</h2>
+            <div class="feature-toggle-row">
+                <div>
+                    <label for="image2dEnabled">Cho phép chọn ảnh từ máy tính</label>
+                    <div class="description">
+                        Khi bật, trang Detection sẽ hiện nút chọn ảnh và xử lý bằng cùng model,
+                        confidence và NMS như camera thời gian thực. Thay đổi có hiệu lực ngay sau khi lưu.
+                    </div>
+                </div>
+                <label class="switch" aria-label="Bật hoặc tắt xử lý ảnh 2D">
+                    <input type="checkbox" id="image2dEnabled">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label for="detectionConfidenceThreshold">Ngưỡng phát hiện (Confidence)</label>
+                <div class="description">
+                    Chỉ giữ kết quả có object confidence × class confidence lớn hơn hoặc bằng giá trị này.
+                </div>
+                <div class="input-with-unit">
+                    <input type="number" id="detectionConfidenceThreshold" step="0.01" min="0" max="1" required>
+                    <span class="unit">0–1</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="detectionIouThreshold">Ngưỡng IoU (NMS)</label>
+                <div class="description">
+                    Điều khiển mức chồng lấn khi loại bỏ các khung phát hiện trùng nhau.
+                </div>
+                <div class="input-with-unit">
+                    <input type="number" id="detectionIouThreshold" step="0.01" min="0" max="1" required>
+                    <span class="unit">0–1</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Navigation Settings -->
         <div class="config-section">
             <h2>🚗 Cấu hình điều khiển</h2>
@@ -207,6 +372,29 @@
                 <div class="input-with-unit">
                     <input type="number" id="timePerMeter" step="0.1" min="0.1">
                     <span class="unit">giây</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Default GPS location -->
+        <div class="config-section">
+            <h2>📍 Tọa độ mặc định</h2>
+
+            <div class="form-group">
+                <label for="defaultLatitude">Vĩ độ mặc định</label>
+                <div class="description">Được sử dụng khi GPS chưa có tín hiệu hợp lệ</div>
+                <div class="input-with-unit">
+                    <input type="number" id="defaultLatitude" step="0.000001" min="-90" max="90" required>
+                    <span class="unit">°</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="defaultLongitude">Kinh độ mặc định</label>
+                <div class="description">Được sử dụng khi GPS chưa có tín hiệu hợp lệ</div>
+                <div class="input-with-unit">
+                    <input type="number" id="defaultLongitude" step="0.000001" min="-180" max="180" required>
+                    <span class="unit">°</span>
                 </div>
             </div>
         </div>
@@ -275,30 +463,93 @@
             <button class="btn btn-reset" onclick="resetToDefault()">🔄 Reset mặc định</button>
             <button class="btn btn-back" onclick="goBack()">⬅️ Quay lại</button>
         </div>
+        <form action="/config/logout" method="post" style="margin-top: 10px;">
+            <button class="btn btn-back" type="submit" style="width: 100%;">🔒 Đăng xuất cấu hình</button>
+        </form>
     </div>
 
     <script>
-        // Load current config when page loads
+        // Load current config and available serial ports when page loads
         window.addEventListener('DOMContentLoaded', loadConfig);
 
         function loadConfig() {
             console.log('🔄 Loading config from server...');
-            fetch('/getConfig')
-                .then(response => response.json())
-                .then(config => {
+            Promise.all([
+                fetch('/getConfig').then(response => response.json()),
+                fetch('/listSerialPorts').then(response => response.json())
+            ])
+                .then(([config, serialData]) => {
                     console.log('📥 Received config:', config);
+                    populatePortSelect('gpsImuPort', serialData.ports, config.GPS_IMU_PORT);
+                    populatePortSelect('controlPort', serialData.ports, config.CONTROL_PORT);
+                    populatePortSelect('lidarPort', serialData.ports, config.LIDAR_PORT);
                     document.getElementById('timePerMeter').value = config.TIME_PER_METER_SEC;
+                    document.getElementById('defaultLatitude').value = config.DEFAULT_LATITUDE;
+                    document.getElementById('defaultLongitude').value = config.DEFAULT_LONGITUDE;
                     document.getElementById('lidarMaxPoints').value = config.LIDAR_MAX_POINTS;
                     document.getElementById('lidarDotLifetime').value = config.LIDAR_DOT_LIFETIME;
                     document.getElementById('obstacleDistance').value = config.LIDAR_OBSTACLE_DISTANCE;
                     document.getElementById('detectionAngleMin').value = config.LIDAR_DETECTION_ANGLE_MIN;
                     document.getElementById('detectionAngleMax').value = config.LIDAR_DETECTION_ANGLE_MAX;
+                    document.getElementById('image2dEnabled').checked = Boolean(config.IMAGE_2D_ENABLED);
+                    document.getElementById('detectionConfidenceThreshold').value = config.DETECTION_CONFIDENCE_THRESHOLD;
+                    document.getElementById('detectionIouThreshold').value = config.DETECTION_IOU_THRESHOLD;
                     console.log('✅ Config loaded successfully');
                 })
                 .catch(error => {
                     console.error('❌ Error loading config:', error);
                     showMessage('Lỗi khi tải cấu hình: ' + error, 'error');
                 });
+        }
+
+        function populatePortSelect(selectId, ports, selectedPort) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '';
+            const knownPorts = new Set(ports.map(port => port.device.toUpperCase()));
+            if (selectedPort && !knownPorts.has(selectedPort.toUpperCase())) {
+                ports = [{
+                    device: selectedPort,
+                    description: 'Đã cấu hình nhưng hiện không kết nối'
+                }, ...ports];
+            }
+            ports.forEach(port => {
+                const option = document.createElement('option');
+                option.value = port.device;
+                option.textContent = `${port.device} — ${port.description}`;
+                select.appendChild(option);
+            });
+            select.value = selectedPort;
+        }
+
+        async function testSerialPort(deviceType, selectId, statusId, button) {
+            const port = document.getElementById(selectId).value;
+            const status = document.getElementById(statusId);
+            if (!port) {
+                status.textContent = 'Không có cổng COM để kiểm tra';
+                status.className = 'port-status error';
+                return;
+            }
+
+            status.textContent = `Đang kiểm tra ${port}...`;
+            status.className = 'port-status testing';
+            button.disabled = true;
+            try {
+                const response = await fetch('/testSerialPort', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({device_type: deviceType, port})
+                });
+                const result = await response.json();
+                status.textContent = result.success
+                    ? `✅ ${result.message}`
+                    : `❌ ${result.message}`;
+                status.className = `port-status ${result.success ? 'success' : 'error'}`;
+            } catch (error) {
+                status.textContent = `❌ Không thể kiểm tra: ${error}`;
+                status.className = 'port-status error';
+            } finally {
+                button.disabled = false;
+            }
         }
 
         function saveConfigRuntime() {
@@ -316,7 +567,10 @@
             .then(result => {
                 console.log('📥 Server response:', result);
                 if (result.success) {
-                    showMessage('✅ Đã lưu vào bộ nhớ (tạm thời, mất khi restart server)', 'success');
+                    const suffix = result.restart_required
+                        ? ' Cổng COM mới cần lưu vĩnh viễn và khởi động lại ứng dụng.'
+                        : '';
+                    showMessage('✅ Đã lưu vào bộ nhớ (tạm thời, mất khi restart server).' + suffix, 'success');
                 } else {
                     showMessage('❌ Lỗi: ' + result.message, 'error');
                 }
@@ -342,7 +596,10 @@
             .then(result => {
                 console.log('📥 Server response:', result);
                 if (result.success) {
-                    showMessage('✅ Đã lưu vĩnh viễn vào settings.json!', 'success');
+                    const suffix = result.restart_required
+                        ? ' Hãy khởi động lại ứng dụng để dùng cổng COM mới.'
+                        : '';
+                    showMessage('✅ Đã lưu vĩnh viễn vào settings.json!' + suffix, 'success');
                 } else {
                     showMessage('❌ Lỗi: ' + result.message, 'error');
                 }
@@ -355,12 +612,20 @@
 
         function getConfigValues() {
             return {
+                GPS_IMU_PORT: document.getElementById('gpsImuPort').value,
+                CONTROL_PORT: document.getElementById('controlPort').value,
+                LIDAR_PORT: document.getElementById('lidarPort').value,
                 TIME_PER_METER_SEC: parseFloat(document.getElementById('timePerMeter').value),
+                DEFAULT_LATITUDE: parseFloat(document.getElementById('defaultLatitude').value),
+                DEFAULT_LONGITUDE: parseFloat(document.getElementById('defaultLongitude').value),
                 LIDAR_MAX_POINTS: parseInt(document.getElementById('lidarMaxPoints').value),
                 LIDAR_DOT_LIFETIME: parseFloat(document.getElementById('lidarDotLifetime').value),
                 LIDAR_OBSTACLE_DISTANCE: parseInt(document.getElementById('obstacleDistance').value),
                 LIDAR_DETECTION_ANGLE_MIN: parseInt(document.getElementById('detectionAngleMin').value),
-                LIDAR_DETECTION_ANGLE_MAX: parseInt(document.getElementById('detectionAngleMax').value)
+                LIDAR_DETECTION_ANGLE_MAX: parseInt(document.getElementById('detectionAngleMax').value),
+                IMAGE_2D_ENABLED: document.getElementById('image2dEnabled').checked,
+                DETECTION_CONFIDENCE_THRESHOLD: parseFloat(document.getElementById('detectionConfidenceThreshold').value),
+                DETECTION_IOU_THRESHOLD: parseFloat(document.getElementById('detectionIouThreshold').value)
             };
         }
 

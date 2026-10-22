@@ -77,6 +77,65 @@
       background-color: #FF5722;
     }
 
+    .image-upload-panel {
+      display: none;
+      background: #fff;
+      border-radius: 8px;
+      padding: 18px;
+      margin: 0 auto 20px;
+      max-width: 924px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .image-upload-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .image-upload-row input[type="file"] {
+      flex: 1 1 300px;
+      padding: 10px;
+      border: 1px solid #cfd8dc;
+      border-radius: 6px;
+      background: #f8fafb;
+    }
+
+    .btn-image {
+      padding: 11px 20px;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      background: #7b1fa2;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-image:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    .image-status {
+      min-height: 22px;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .image-result {
+      display: none;
+      margin-top: 16px;
+    }
+
+    .image-result img {
+      width: 100%;
+      max-height: 720px;
+      object-fit: contain;
+      background: #111;
+      border-radius: 8px;
+    }
+
     /* Khu vực hiển thị video/camera */
     .video-container {
       width: 100%;
@@ -139,7 +198,7 @@
 </head>
 <body>
   <div class="container">
-    <h2>� Hệ Thống Phát Hiện Bệnh Cây</h2>
+    <h2>🌿 Hệ Thống Phát Hiện Bệnh Cây</h2>
 
     <!-- Thanh điều khiển trên cùng -->
     <div class="top-controls">
@@ -152,6 +211,27 @@
       <button class="btn-detect" id="btnDetect" onclick="toggleDetection()">
         🎯 Detect
       </button>
+    </div>
+
+    <!-- Chỉ hiển thị khi được bật trong trang cấu hình -->
+    <div class="image-upload-panel" id="image2dPanel">
+      <h3>🖼️ Xử lý ảnh 2D từ máy tính</h3>
+      <div class="image-upload-row">
+        <input id="image2dFile" type="file" accept="image/jpeg,image/png,image/bmp,image/webp">
+        <button class="btn-image" id="btnProcessImage" type="button" onclick="processSelectedImage()">
+          🔍 Xử lý ảnh
+        </button>
+      </div>
+      <div class="image-status" id="image2dStatus">Chọn một ảnh JPG, PNG, BMP hoặc WEBP (tối đa 10 MB).</div>
+      <div class="image-result" id="image2dResult">
+        <img id="processedImage" alt="Ảnh sau khi xử lý detection">
+        <div class="stats-panel">
+          <div class="stat-item"><span class="stat-label">Số cây phát hiện:</span><span class="stat-value" id="imagePlantCount">0</span></div>
+          <div class="stat-item"><span class="stat-label">Cây bị bệnh:</span><span class="stat-value" id="imageDiseaseCount">0</span></div>
+          <div class="stat-item"><span class="stat-label">Cây bình thường:</span><span class="stat-value" id="imageHealthyCount">0</span></div>
+          <div class="stat-item"><span class="stat-label">Thời gian xử lý:</span><span class="stat-value" id="imageInferenceTime">0 ms</span></div>
+        </div>
+      </div>
     </div>
 
     <!-- Khu vực hiển thị video -->
@@ -206,6 +286,77 @@
     let cameraActive = false;
     let detectionActive = false;
     let statsInterval = null;
+    let image2dEnabled = false;
+    let imageOptionInterval = null;
+
+    window.addEventListener('DOMContentLoaded', function() {
+      refreshImage2DOption();
+      imageOptionInterval = setInterval(refreshImage2DOption, 3000);
+    });
+
+    async function refreshImage2DOption() {
+      try {
+        const response = await fetch('/detection_options', { cache: 'no-store' });
+        const options = await response.json();
+        image2dEnabled = Boolean(options.image_2d_enabled);
+        const panel = document.getElementById('image2dPanel');
+        panel.style.display = image2dEnabled ? 'block' : 'none';
+        if (!image2dEnabled) {
+          document.getElementById('image2dFile').value = '';
+          document.getElementById('image2dResult').style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Không thể tải cấu hình ảnh 2D:', error);
+      }
+    }
+
+    async function processSelectedImage() {
+      const fileInput = document.getElementById('image2dFile');
+      const button = document.getElementById('btnProcessImage');
+      const status = document.getElementById('image2dStatus');
+      const resultPanel = document.getElementById('image2dResult');
+
+      if (!image2dEnabled) {
+        status.textContent = 'Chức năng xử lý ảnh 2D đang tắt trong cấu hình.';
+        return;
+      }
+      if (!fileInput.files.length) {
+        status.textContent = '⚠️ Vui lòng chọn một ảnh trước.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+      button.disabled = true;
+      button.textContent = '⏳ Đang xử lý...';
+      status.textContent = 'Đang chạy model nhận diện trên ảnh đã chọn...';
+      resultPanel.style.display = 'none';
+
+      try {
+        const response = await fetch('/process_2d_image', {
+          method: 'POST',
+          body: formData
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || 'Không thể xử lý ảnh');
+        }
+
+        document.getElementById('processedImage').src =
+          `data:${result.mime_type};base64,${result.image}`;
+        document.getElementById('imagePlantCount').textContent = result.stats.plants_detected;
+        document.getElementById('imageDiseaseCount').textContent = result.stats.disease_count;
+        document.getElementById('imageHealthyCount').textContent = result.stats.healthy_count;
+        document.getElementById('imageInferenceTime').textContent = result.stats.inference_time + ' ms';
+        resultPanel.style.display = 'block';
+        status.textContent = '✅ Xử lý ảnh hoàn tất.';
+      } catch (error) {
+        status.textContent = '❌ ' + error.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = '🔍 Xử lý ảnh';
+      }
+    }
 
     // Quay lại trang chủ
     function goBack() {
@@ -388,6 +539,9 @@
 
     // Cleanup khi thoát trang
     window.addEventListener('beforeunload', function() {
+      if (imageOptionInterval !== null) {
+        clearInterval(imageOptionInterval);
+      }
       if (cameraActive) {
         fetch("/camera_stop", { method: "POST", keepalive: true });
       }

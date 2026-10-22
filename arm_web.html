@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Điều khiển Cánh Tay Robot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+            color: #e0e0e0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            color: #00d4ff;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 600px;
+            width: 100%;
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card h2 {
+            color: #00d4ff;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            padding-bottom: 10px;
+        }
+
+        .servo-group {
+            margin-bottom: 22px;
+        }
+
+        .servo-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .servo-name {
+            font-weight: bold;
+            font-size: 1em;
+            color: #00d4ff;
+        }
+
+        .servo-desc {
+            font-size: 0.78em;
+            color: #888;
+        }
+
+        .angle-display {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #fff;
+            background: rgba(0,212,255,0.15);
+            border: 1px solid rgba(0,212,255,0.3);
+            border-radius: 8px;
+            padding: 4px 12px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-min, .slider-max {
+            font-size: 0.78em;
+            color: #666;
+            min-width: 22px;
+            text-align: center;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #00d4ff 0%, #00d4ff var(--pct, 50%), #333 var(--pct, 50%));
+            outline: none;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.7);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.7);
+            cursor: pointer;
+            border: none;
+        }
+
+        .angle-preset-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            font-size: 0.75em;
+            padding: 4px 10px;
+            border: 1px solid rgba(0,212,255,0.3);
+            border-radius: 6px;
+            background: rgba(0,212,255,0.08);
+            color: #00d4ff;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: rgba(0,212,255,0.2);
+            border-color: #00d4ff;
+        }
+
+        .divider {
+            height: 1px;
+            background: rgba(255,255,255,0.05);
+            margin: 4px 0 18px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 13px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.25s;
+            min-width: 120px;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+        .btn:active { transform: scale(0.97); }
+
+        .btn-send {
+            background: linear-gradient(135deg, #00d4ff, #0080ff);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.35);
+        }
+
+        .btn-send:hover {
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.55);
+        }
+
+        .btn-reset {
+            background: rgba(255,255,255,0.08);
+            color: #ccc;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .btn-back {
+            background: rgba(255, 82, 82, 0.15);
+            color: #ff5252;
+            border: 1px solid rgba(255, 82, 82, 0.3);
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 82, 82, 0.25);
+        }
+
+        .status-bar {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .status-idle    { background: rgba(255,255,255,0.05); color: #888; }
+        .status-sending { background: rgba(0,212,255,0.1);   color: #00d4ff; }
+        .status-ok      { background: rgba(76,175,80,0.15);  color: #81c784; }
+        .status-error   { background: rgba(244,67,54,0.15);  color: #e57373; }
+
+        .auto-send-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 0.88em;
+            color: #aaa;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 42px;
+            height: 22px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+        .toggle-knob {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #333;
+            border-radius: 22px;
+            transition: 0.3s;
+        }
+
+        .toggle-knob:before {
+            content: "";
+            position: absolute;
+            width: 16px; height: 16px;
+            left: 3px; bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        input:checked + .toggle-knob { background: #00d4ff; }
+        input:checked + .toggle-knob:before { transform: translateX(20px); }
+
+        .lidar-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,212,255,0.08);
+            border: 1px solid rgba(0,212,255,0.2);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.82em;
+            color: #aaa;
+            margin-top: 6px;
+        }
+
+        .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #555;
+            transition: background 0.3s;
+        }
+
+        .dot.active { background: #00d4ff; box-shadow: 0 0 6px #00d4ff; }
+
+        /* Arm visualization */
+        .arm-visual {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 8px;
+            padding: 16px 0 8px;
+        }
+
+        .joint-bar-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .joint-bar-label {
+            font-size: 0.75em;
+            color: #666;
+        }
+
+        .joint-bar-outer {
+            width: 28px;
+            height: 100px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 14px;
+            border: 1px solid rgba(0,212,255,0.15);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        .joint-bar-fill {
+            width: 100%;
+            background: linear-gradient(to top, #00d4ff, #0080ff);
+            border-radius: 14px;
+            transition: height 0.3s ease;
+        }
+
+        .joint-angle-lbl {
+            font-size: 0.72em;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        @media (max-width: 480px) {
+            .header h1 { font-size: 1.4em; }
+            .card { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🦾 Điều khiển Cánh Tay Robot</h1>
+    <p>Servo J1 – J4 | Phạm vi 0° – 180°</p>
+</div>
+
+<!-- Visualization card -->
+<div class="card" style="padding: 16px 24px;">
+    <h2 style="margin-bottom:8px;">📊 Góc hiện tại</h2>
+    <div class="arm-visual">
+        <div class="joint-bar-wrap">
+            <div class="joint-bar-outer"><div class="joint-bar-fill" id="bar_j1" style="height:50%"></div></div>
+            <div class="joint-bar-label">J1</div>
+            <div class="joint-angle-lbl" id="lbl_bar_j1">90°</div>
+        </div>
+        <div class="joint-bar-wrap">
+            <div class="joint-bar-outer"><div class="joint-bar-fill" id="bar_j2" style="height:50%"></div></div>
+            <div class="joint-bar-label">J2</div>
+            <div class="joint-angle-lbl" id="lbl_bar_j2">90°</div>
+        </div>
+        <div class="joint-bar-wrap">
+            <div class="joint-bar-outer"><div class="joint-bar-fill" id="bar_j3" style="height:50%"></div></div>
+            <div class="joint-bar-label">J3</div>
+            <div class="joint-angle-lbl" id="lbl_bar_j3">90°</div>
+        </div>
+        <div class="joint-bar-wrap">
+            <div class="joint-bar-outer"><div class="joint-bar-fill" id="bar_j4" style="height:50%"></div></div>
+            <div class="joint-bar-label">J4</div>
+            <div class="joint-angle-lbl" id="lbl_bar_j4">90°</div>
+        </div>
+    </div>
+    <div style="text-align:center;">
+        <div class="lidar-badge">
+            <div class="dot" id="connDot"></div>
+            <span id="connLabel">Chưa kết nối</span>
+        </div>
+    </div>
+</div>
+
+<!-- Sliders card -->
+<div class="card">
+    <h2>🎛️ Điều chỉnh Servo</h2>
+
+    <!-- J1 -->
+    <div class="servo-group">
+        <div class="servo-label-row">
+            <div>
+                <span class="servo-name">J1</span>
+                <span class="servo-desc"> – Khớp gốc (Xoay ngang)</span>
+            </div>
+            <div class="angle-display" id="val_j1">90°</div>
+        </div>
+        <div class="slider-row">
+            <span class="slider-min">0°</span>
+            <input type="range" id="slider_j1" min="0" max="180" value="90"
+                oninput="onSliderInput('j1', this.value)"
+                onchange="onSliderChange('j1', this.value)">
+            <span class="slider-max">180°</span>
+        </div>
+        <div class="angle-preset-row">
+            <button class="preset-btn" onclick="setAngle('j1', 0)">0°</button>
+            <button class="preset-btn" onclick="setAngle('j1', 45)">45°</button>
+            <button class="preset-btn" onclick="setAngle('j1', 90)">90°</button>
+            <button class="preset-btn" onclick="setAngle('j1', 135)">135°</button>
+            <button class="preset-btn" onclick="setAngle('j1', 180)">180°</button>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- J2 -->
+    <div class="servo-group">
+        <div class="servo-label-row">
+            <div>
+                <span class="servo-name">J2</span>
+                <span class="servo-desc"> – Khớp vai (Nâng hạ)</span>
+            </div>
+            <div class="angle-display" id="val_j2">90°</div>
+        </div>
+        <div class="slider-row">
+            <span class="slider-min">0°</span>
+            <input type="range" id="slider_j2" min="0" max="180" value="90"
+                oninput="onSliderInput('j2', this.value)"
+                onchange="onSliderChange('j2', this.value)">
+            <span class="slider-max">180°</span>
+        </div>
+        <div class="angle-preset-row">
+            <button class="preset-btn" onclick="setAngle('j2', 0)">0°</button>
+            <button class="preset-btn" onclick="setAngle('j2', 45)">45°</button>
+            <button class="preset-btn" onclick="setAngle('j2', 90)">90°</button>
+            <button class="preset-btn" onclick="setAngle('j2', 135)">135°</button>
+            <button class="preset-btn" onclick="setAngle('j2', 180)">180°</button>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- J3 -->
+    <div class="servo-group">
+        <div class="servo-label-row">
+            <div>
+                <span class="servo-name">J3</span>
+                <span class="servo-desc"> – Khớp khuỷu (Gập duỗi)</span>
+            </div>
+            <div class="angle-display" id="val_j3">90°</div>
+        </div>
+        <div class="slider-row">
+            <span class="slider-min">0°</span>
+            <input type="range" id="slider_j3" min="0" max="180" value="90"
+                oninput="onSliderInput('j3', this.value)"
+                onchange="onSliderChange('j3', this.value)">
+            <span class="slider-max">180°</span>
+        </div>
+        <div class="angle-preset-row">
+            <button class="preset-btn" onclick="setAngle('j3', 0)">0°</button>
+            <button class="preset-btn" onclick="setAngle('j3', 45)">45°</button>
+            <button class="preset-btn" onclick="setAngle('j3', 90)">90°</button>
+            <button class="preset-btn" onclick="setAngle('j3', 135)">135°</button>
+            <button class="preset-btn" onclick="setAngle('j3', 180)">180°</button>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- J4 -->
+    <div class="servo-group">
+        <div class="servo-label-row">
+            <div>
+                <span class="servo-name">J4</span>
+                <span class="servo-desc"> – Khớp cổ tay (Xoay đầu)</span>
+            </div>
+            <div class="angle-display" id="val_j4">90°</div>
+        </div>
+        <div class="slider-row">
+            <span class="slider-min">0°</span>
+            <input type="range" id="slider_j4" min="0" max="180" value="90"
+                oninput="onSliderInput('j4', this.value)"
+                onchange="onSliderChange('j4', this.value)">
+            <span class="slider-max">180°</span>
+        </div>
+        <div class="angle-preset-row">
+            <button class="preset-btn" onclick="setAngle('j4', 0)">0°</button>
+            <button class="preset-btn" onclick="setAngle('j4', 45)">45°</button>
+            <button class="preset-btn" onclick="setAngle('j4', 90)">90°</button>
+            <button class="preset-btn" onclick="setAngle('j4', 135)">135°</button>
+            <button class="preset-btn" onclick="setAngle('j4', 180)">180°</button>
+        </div>
+    </div>
+
+    <!-- Auto-send toggle -->
+    <div class="auto-send-row">
+        <label class="toggle-switch">
+            <input type="checkbox" id="autoSendToggle" checked>
+            <span class="toggle-knob"></span>
+        </label>
+        <span>Tự động gửi khi thả slider</span>
+    </div>
+
+    <!-- Status -->
+    <div style="margin-top: 14px;">
+        <div class="status-bar status-idle" id="statusBar">Sẵn sàng</div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-row" style="margin-top: 14px;">
+        <button class="btn btn-send" onclick="sendAngles()">📤 Gửi lệnh</button>
+        <button class="btn btn-reset" onclick="resetAll()">↺ Reset 90°</button>
+        <button class="btn btn-back" onclick="goBack()">← Về trang chính</button>
+    </div>
+</div>
+
+<script>
+    const joints = ['j1', 'j2', 'j3', 'j4'];
+    let sendTimeout = null;
+    let lastSentAngles = [90, 90, 90, 90];
+
+    // Update slider fill color gradient
+    function updateSliderFill(id, value) {
+        const pct = (value / 180 * 100).toFixed(1);
+        document.getElementById('slider_' + id).style.setProperty('--pct', pct + '%');
+    }
+
+    function onSliderInput(id, value) {
+        const v = parseInt(value);
+        document.getElementById('val_' + id).textContent = v + '°';
+        updateSliderFill(id, v);
+        updateBar(id, v);
+    }
+
+    function onSliderChange(id, value) {
+        const v = parseInt(value);
+        if (document.getElementById('autoSendToggle').checked) {
+            // Debounce: send 200ms after last change
+            clearTimeout(sendTimeout);
+            sendTimeout = setTimeout(() => sendAngles(), 200);
+        }
+    }
+
+    function setAngle(id, angle) {
+        document.getElementById('slider_' + id).value = angle;
+        document.getElementById('val_' + id).textContent = angle + '°';
+        updateSliderFill(id, angle);
+        updateBar(id, angle);
+        if (document.getElementById('autoSendToggle').checked) {
+            clearTimeout(sendTimeout);
+            sendTimeout = setTimeout(() => sendAngles(), 200);
+        }
+    }
+
+    function getAngles() {
+        return joints.map(id => parseInt(document.getElementById('slider_' + id).value));
+    }
+
+    function updateBar(id, angle) {
+        const pct = (angle / 180 * 100).toFixed(1);
+        document.getElementById('bar_' + id).style.height = pct + '%';
+        document.getElementById('lbl_bar_' + id).textContent = angle + '°';
+    }
+
+    function sendAngles() {
+        const angles = getAngles();
+        setStatus('sending', '⏳ Đang gửi...');
+
+        const formData = new FormData();
+        formData.append('j1', angles[0]);
+        formData.append('j2', angles[1]);
+        formData.append('j3', angles[2]);
+        formData.append('j4', angles[3]);
+
+        fetch('/setArmAngles', { method: 'POST', body: formData })
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.text();
+            })
+            .then(txt => {
+                lastSentAngles = angles;
+                setStatus('ok', '✅ ' + txt);
+                setConnected(true);
+            })
+            .catch(err => {
+                setStatus('error', '❌ Lỗi: ' + err.message);
+                setConnected(false);
+            });
+    }
+
+    function resetAll() {
+        joints.forEach(id => {
+            document.getElementById('slider_' + id).value = 90;
+            document.getElementById('val_' + id).textContent = '90°';
+            updateSliderFill(id, 90);
+            updateBar(id, 90);
+        });
+        sendAngles();
+    }
+
+    function goBack() {
+        window.location.href = '/';
+    }
+
+    function setStatus(type, msg) {
+        const bar = document.getElementById('statusBar');
+        bar.className = 'status-bar status-' + type;
+        bar.textContent = msg;
+        if (type === 'ok' || type === 'error') {
+            setTimeout(() => {
+                bar.className = 'status-bar status-idle';
+                bar.textContent = 'Sẵn sàng';
+            }, 3000);
+        }
+    }
+
+    function setConnected(ok) {
+        const dot = document.getElementById('connDot');
+        const lbl = document.getElementById('connLabel');
+        dot.className = ok ? 'dot active' : 'dot';
+        lbl.textContent = ok ? 'Đã kết nối' : 'Mất kết nối';
+    }
+
+    // Poll current arm angles from server every 2 seconds
+    function pollAngles() {
+        fetch('/getArmAngles')
+            .then(r => r.json())
+            .then(data => {
+                setConnected(true);
+                // Only update sliders if the user is not actively dragging
+                // (compare with lastSentAngles to avoid overriding user input)
+                joints.forEach((id, i) => {
+                    const serverAngle = data[i];
+                    const sliderEl = document.getElementById('slider_' + id);
+                    // Only sync if values differ significantly (server changed externally)
+                    if (Math.abs(parseInt(sliderEl.value) - serverAngle) > 2) {
+                        sliderEl.value = serverAngle;
+                        document.getElementById('val_' + id).textContent = serverAngle + '°';
+                        updateSliderFill(id, serverAngle);
+                    }
+                    updateBar(id, parseInt(sliderEl.value));
+                });
+            })
+            .catch(() => setConnected(false));
+    }
+
+    // Initialize slider fills
+    joints.forEach(id => {
+        updateSliderFill(id, 90);
+    });
+
+    // Initial poll + periodic refresh
+    pollAngles();
+    setInterval(pollAngles, 2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập cấu hình</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .login-card {
+            width: min(100%, 420px);
+            padding: 32px;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
+        }
+        h1 { margin: 0 0 8px; color: #667eea; text-align: center; }
+        p { margin: 0 0 24px; color: #666; text-align: center; }
+        label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; }
+        input {
+            width: 100%;
+            padding: 13px 14px;
+            border: 2px solid #ddd;
+            border-radius: 9px;
+            font-size: 1rem;
+        }
+        input:focus { outline: none; border-color: #667eea; }
+        .error {
+            margin: 14px 0 0;
+            padding: 10px;
+            border-radius: 8px;
+            color: #b71c1c;
+            background: #ffebee;
+            text-align: center;
+        }
+        .actions { display: flex; gap: 10px; margin-top: 20px; }
+        button, a {
+            flex: 1;
+            padding: 12px;
+            border: 0;
+            border-radius: 9px;
+            font-size: 1rem;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        button { color: #fff; background: #667eea; }
+        a { color: #444; background: #eee; }
+    </style>
+</head>
+<body>
+    <main class="login-card">
+        <h1>🔒 Cấu hình hệ thống</h1>
+        <p>Nhập mật khẩu để tiếp tục</p>
+        <form method="post" action="/config/login">
+            <label for="password">Mật khẩu</label>
+            <input id="password" name="password" type="password" inputmode="numeric"
+                   autocomplete="current-password" autofocus required>
+            {% if error %}<div class="error" role="alert">{{ error }}</div>{% endif %}
+            <div class="actions">
+                <a href="/">Quay lại</a>
+                <button type="submit">Đăng nhập</button>
+            </div>
+        </form>
+    </main>
+</body>
+</html>

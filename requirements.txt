@@ -1,0 +1,32 @@
+# Core: Flask server, serial links, camera/image processing and Lidar test UI.
+Flask
+pyserial
+numpy
+opencv-python
+matplotlib
+zeroconf
+Pillow
+ultralytics
+
+# AI inference used by app.py through detect_stream.py. That module prefers the
+# lightweight runtime on Linux and falls back to TensorFlow on Windows.
+# detect.py is a standalone Linux-oriented utility and imports tflite-runtime
+# directly; it is not imported by the main Flask application.
+tflite-runtime; platform_system == "Linux"
+tensorflow; platform_system == "Windows"
+
+# Intel RealSense SDK. PyPI wheels are used on Windows and Linux x86_64.
+# On Raspberry Pi/ARM, install librealsense + its Python binding separately;
+# a generic pip wheel is not assumed to be available for every Pi OS release.
+pyrealsense2; platform_system == "Windows"
+pyrealsense2; platform_system == "Linux" and platform_machine == "x86_64"
+
+# Raspberry Pi servo backends. arm_control.py prefers pigpio and falls back to
+# RPi.GPIO; both are skipped automatically when installing on Windows.
+pigpio; platform_system == "Linux"
+RPi.GPIO; platform_system == "Linux" and platform_machine == "armv7l"
+RPi.GPIO; platform_system == "Linux" and platform_machine == "aarch64"
+
+# tkinter is used only by test.py and is part of Python on Windows. On
+# Raspberry Pi OS/Debian it must be installed by apt (package python3-tk),
+# therefore it intentionally does not appear as a pip dependency here.

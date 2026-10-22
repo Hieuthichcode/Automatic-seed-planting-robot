@@ -6,12 +6,13 @@ import tflite_runtime.interpreter as tflite
 import os
 
 # ===================== CONFIG =====================
-MODEL_PATH = "model.tflite"
-INPUT_SIZE = 480        
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(APP_DIR, "model", "640fit-fp16.tflite")
+INPUT_SIZE = 640
 NUM_THREADS = 4
-CONF_THRESH = 0.3
+CONF_THRESH = 0.4
 NMS_THRESH = 0.45
-CLASS_FILE = "classes.txt"  # nếu không có thì fallback
+CLASS_FILE = os.path.join(APP_DIR, "classes.txt")  # nếu không có thì fallback
 SKIP_FRAMES = 2  # Process mỗi 2 frame (giảm để tăng FPS hiển thị)
 
 # ===================== ENV TWEAKS =====================

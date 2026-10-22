@@ -283,7 +283,8 @@
         let lidarConfig = {
             obstacleDistance: 400,
             angleMin: -20,
-            angleMax: 20
+            angleMax: 20,
+            dotLifetime: 1.0
         };
 
         // Load config từ server
@@ -294,6 +295,7 @@
                     lidarConfig.obstacleDistance = config.LIDAR_OBSTACLE_DISTANCE || 400;
                     lidarConfig.angleMin = config.LIDAR_DETECTION_ANGLE_MIN || -20;
                     lidarConfig.angleMax = config.LIDAR_DETECTION_ANGLE_MAX || 20;
+                    lidarConfig.dotLifetime = config.LIDAR_DOT_LIFETIME || 1.0;
                     console.log(`[LIDAR Config] Loaded: Distance=${lidarConfig.obstacleDistance}mm, Angle=[${lidarConfig.angleMin}° to ${lidarConfig.angleMax}°]`);
                 })
                 .catch(error => {
@@ -406,7 +408,7 @@
                 const y = centerY + radius * Math.sin(angleRad);
                 
                 // Màu sắc và độ mờ dần theo thời gian
-                const alpha = Math.max(0, 1 - age / 2.0); // Mờ dần trong 2 giây
+                const alpha = Math.max(0, 1 - age / lidarConfig.dotLifetime);
                 
                 // CẢNH BÁO: Nếu trong vùng phát hiện và khoảng cách < ngưỡng → MÀU ĐỎ
                 if (isInDetectionZone && distance < DANGER_DISTANCE) {
@@ -513,17 +515,17 @@
                         });
                     }
                     
-                    // Gửi trạng thái vật cản lên server (để navigation system biết)
-                    updateLidarObstacle(hasObstacle, minDistance);
-                    
                     // Vẽ các điểm LIDAR
                     drawLidarPoints(data.points);
                     
                     // Cập nhật status
                     const statusDiv = document.getElementById('status');
-                    if (data.connected) {
+                    if (data.connected && data.data_fresh) {
                         statusDiv.className = 'status connected';
                         statusDiv.textContent = '🟢 LIDAR đang hoạt động';
+                    } else if (data.connected) {
+                        statusDiv.className = 'status disconnected';
+                        statusDiv.textContent = '🟠 Đã nối nhưng chưa có dữ liệu hợp lệ';
                     } else {
                         statusDiv.className = 'status disconnected';
                         statusDiv.textContent = '🔴 Chưa kết nối';
@@ -532,25 +534,6 @@
                 .catch(error => {
                     console.error('Error fetching LIDAR data:', error);
                 });
-        }
-
-        // Gửi trạng thái vật cản lên server
-        function updateLidarObstacle(detected, minDistance) {
-            // Log để debug
-            if (detected) {
-                console.log(`🚨 SENDING OBSTACLE ALERT: detected=${detected}, distance=${minDistance.toFixed(0)}mm`);
-            }
-            
-            const formData = new FormData();
-            formData.append('detected', detected);
-            formData.append('min_distance', minDistance);
-            
-            fetch('/updateLidarObstacle', {
-                method: 'POST',
-                body: formData
-            }).catch(error => {
-                console.error('Error updating LIDAR obstacle:', error);
-            });
         }
 
         // Xóa dữ liệu

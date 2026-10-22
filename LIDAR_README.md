@@ -1,4 +1,4 @@
-# ESP32 LIDAR Web Viewer
+# Lidar trong hệ thống giám sát và điều khiển robot
 
 ## 📋 Mô tả
 Hệ thống hiển thị dữ liệu LIDAR từ ESP32 lên web browser theo thời gian thực.
@@ -7,9 +7,10 @@ Hệ thống hiển thị dữ liệu LIDAR từ ESP32 lên web browser theo th�
 
 ### 1. **Read_lidar.py**
 - Đọc dữ liệu từ ESP32 LIDAR qua Serial
-- Parse dữ liệu format: `khoảng_cách góc` (ví dụ: `450.5 90.0`)
+- Parse format firmware hiện tại: `khoảng_cách góc chất_lượng`
+  (ví dụ: `450.5 90.0 123`); vẫn nhận format hai trường cũ.
 - Lưu trữ điểm với timestamp
-- Tự động xóa điểm cũ sau 2 giây
+- Tự reconnect khi mất cổng; dữ liệu stale làm trạng thái điều khiển fail-safe
 
 ### 2. **lidar_web.html**
 - Giao diện web hiển thị LIDAR
@@ -34,18 +35,18 @@ Hệ thống hiển thị dữ liệu LIDAR từ ESP32 lên web browser theo th�
 
 ### Bước 1: Kết nối phần cứng
 1. Kết nối ESP32 + LIDAR với máy tính qua USB
-2. Kiểm tra cổng COM (ví dụ: COM3)
+2. Kiểm tra cổng COM (cấu hình đang lưu hiện tại là COM44)
 
 ### Bước 2: Cấu hình code ESP32
 Đảm bảo ESP32 gửi dữ liệu theo format:
 ```
-khoảng_cách góc
+khoảng_cách góc chất_lượng
 ```
 Ví dụ:
 ```
-450.5 90.0
-523.2 91.0
-498.7 92.0
+450.5 90.0 123
+523.2 91.0 98
+498.7 92.0 105
 ```
 
 ### Bước 3: Chạy server
@@ -54,28 +55,32 @@ python app.py
 ```
 
 ### Bước 4: Mở web browser
-1. Truy cập: `http://localhost:5000`
+1. Truy cập: `http://control.local`
 2. Nhấn nút "📡 LIDAR" trong Control Panel
 3. Nhấn "🚀 Bắt đầu LIDAR"
 
 ### Bước 5: Điều chỉnh (nếu cần)
-Mặc định:
-- **Port**: COM3
+Giá trị đang lưu:
+- **Port**: COM44
 - **Baudrate**: 115200
-- **Lifetime**: 2 giây
+- **Lifetime**: 1 giây
 
 Để thay đổi, sửa trong `Read_lidar.py`:
 ```python
 # Dòng 9-10
 self.max_points = 1000  # Số điểm tối đa
-self.dot_lifetime = 2.0  # Thời gian hiển thị (giây)
+self.dot_lifetime = 1.0  # Thời gian hiển thị (giây)
 ```
 
-Để thay đổi port/baudrate mặc định, sửa trong `app.py`:
+Để đổi cổng, mở `http://control.local/config`, đăng nhập bằng mật khẩu `0123`,
+chọn cổng Lidar rồi nhấn kiểm tra. Chỉ lưu khi hệ thống nhận đúng dữ liệu Lidar
+trên cổng đó. Lưu vĩnh viễn ghi lựa chọn vào `settings.json`; thay đổi cổng có
+hiệu lực sau khi khởi động lại ứng dụng.
+
+Baudrate mặc định nằm trong `config.py`:
+
 ```python
-# Dòng 132-133
-port = request.form.get("port", "COM3")  # Đổi COM3
-baudrate = int(request.form.get("baudrate", "115200"))  # Đổi 115200
+LIDAR_BAUDRATE = 115200
 ```
 
 ## 🎨 Giao diện
@@ -122,7 +127,7 @@ const maxDistance = 4000; // 4000mm = 4m
 
 ### Từ ESP32 → Python (Serial)
 ```
-khoảng_cách góc
+khoảng_cách góc chất_lượng
 ```
 - **khoảng_cách**: mm (float)
 - **góc**: độ (float), 0-360°
@@ -134,6 +139,7 @@ khoảng_cách góc
     {
       "angle": 90.0,
       "distance": 450.5,
+      "quality": 123.0,
       "age": 0.234
     },
     ...
@@ -148,6 +154,7 @@ khoảng_cách góc
 - Kiểm tra cổng COM đúng chưa
 - Kiểm tra baudrate khớp với ESP32
 - Đảm bảo không có ứng dụng khác đang dùng cổng COM
+- Dùng nút kiểm tra cổng trong trang Config trước khi lưu
 
 ### Không hiển thị điểm
 - Kiểm tra format dữ liệu từ ESP32
@@ -163,3 +170,4 @@ khoảng_cách góc
 - Có thể chạy đồng thời Detection và LIDAR
 - Dữ liệu tự động xóa sau `dot_lifetime` giây
 - Không lưu vào database, chỉ hiển thị real-time
+- Trạng thái vật cản do monitor phía server quyết định; trình duyệt chỉ hiển thị

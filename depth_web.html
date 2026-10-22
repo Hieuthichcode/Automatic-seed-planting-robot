@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Chiều Sâu – RealSense D435</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0d1117;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+            color: #e6edf3;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 16px;
+            width: 100%;
+        }
+
+        .header h1 {
+            font-size: 1.7em;
+            color: #58a6ff;
+            text-shadow: 0 0 16px rgba(88, 166, 255, 0.4);
+            margin-bottom: 4px;
+        }
+
+        .header p { color: #8b949e; font-size: 0.88em; }
+
+        .main-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 14px;
+            padding: 20px;
+            max-width: 700px;
+            width: 100%;
+        }
+
+        /* ── Stream container ── */
+        .stream-wrap {
+            position: relative;
+            width: 100%;
+            background: #010409;
+            border-radius: 10px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #depthImg {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+
+        .stream-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            color: #484f58;
+        }
+
+        .stream-placeholder svg { width: 64px; height: 64px; opacity: 0.4; }
+        .stream-placeholder p { font-size: 0.9em; }
+
+        /* ── Status badges ── */
+        .badge-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            justify-content: center;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 13px;
+            border-radius: 20px;
+            font-size: 0.82em;
+            font-weight: 600;
+            border: 1px solid transparent;
+        }
+
+        .badge-cam {
+            background: rgba(88,166,255,0.08);
+            border-color: rgba(88,166,255,0.3);
+            color: #58a6ff;
+        }
+
+        .badge-fps {
+            background: rgba(63,185,80,0.08);
+            border-color: rgba(63,185,80,0.3);
+            color: #3fb950;
+        }
+
+        .badge-dist {
+            background: rgba(210,153,34,0.08);
+            border-color: rgba(210,153,34,0.3);
+            color: #d2a520;
+        }
+
+        .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #484f58;
+            transition: background 0.3s;
+        }
+
+        .dot.on  { background: #3fb950; box-shadow: 0 0 6px #3fb950; }
+        .dot.err { background: #f85149; box-shadow: 0 0 6px #f85149; }
+
+        /* ── Colormap legend ── */
+        .legend {
+            margin-top: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.78em;
+            color: #8b949e;
+        }
+
+        .legend-bar {
+            flex: 1;
+            height: 12px;
+            border-radius: 6px;
+            background: linear-gradient(to right,
+                #000080, #0000ff, #00ffff, #00ff00,
+                #ffff00, #ff8000, #ff0000);
+            border: 1px solid #30363d;
+        }
+
+        /* ── Buttons ── */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 11px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 120px;
+        }
+
+        .btn:hover  { opacity: 0.85; transform: translateY(-1px); }
+        .btn:active { transform: scale(0.97); }
+
+        .btn-start {
+            background: linear-gradient(135deg, #238636, #2ea043);
+            color: #fff;
+        }
+
+        .btn-stop {
+            background: rgba(248,81,73,0.15);
+            color: #f85149;
+            border: 1px solid rgba(248,81,73,0.4);
+        }
+
+        .btn-back {
+            background: rgba(88,166,255,0.1);
+            color: #58a6ff;
+            border: 1px solid rgba(88,166,255,0.3);
+        }
+
+        /* ── Info panel ── */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .info-cell {
+            background: #0d1117;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+
+        .info-cell label {
+            display: block;
+            font-size: 0.72em;
+            color: #8b949e;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .info-cell span {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #e6edf3;
+        }
+
+        /* ── Status message ── */
+        #statusMsg {
+            margin-top: 12px;
+            text-align: center;
+            font-size: 0.85em;
+            color: #8b949e;
+            min-height: 20px;
+            transition: color 0.3s;
+        }
+
+        @media (max-width: 480px) {
+            .header h1 { font-size: 1.3em; }
+            .info-grid  { grid-template-columns: 1fr; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🔵 Camera Chiều Sâu</h1>
+    <p>Intel RealSense D435 – Depth Stream (JET colormap)</p>
+</div>
+
+<div class="main-card">
+
+    <!-- Stream -->
+    <div class="stream-wrap" id="streamWrap">
+        <img id="depthImg" alt="Depth stream">
+        <div class="stream-placeholder" id="placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M8 12h8M12 8v8"/>
+            </svg>
+            <p>Nhấn <strong>Bật camera chiều sâu</strong> để bắt đầu</p>
+        </div>
+    </div>
+
+    <!-- Badges -->
+    <div class="badge-row">
+        <div class="badge badge-cam">
+            <div class="dot" id="camDot"></div>
+            <span id="camStatus">Chưa bật</span>
+        </div>
+        <div class="badge badge-fps">
+            <span>FPS hiển thị: </span>
+            <span id="dispFps">—</span>
+        </div>
+        <div class="badge badge-dist">
+            <span>Tâm: </span>
+            <span id="centerDist">—</span>
+        </div>
+    </div>
+
+    <!-- Colormap legend -->
+    <div class="legend">
+        <span>Gần</span>
+        <div class="legend-bar"></div>
+        <span>Xa (≤ 4m)</span>
+    </div>
+
+    <!-- Info grid -->
+    <div class="info-grid">
+        <div class="info-cell">
+            <label>Độ phân giải</label>
+            <span>1280 × 720</span>
+        </div>
+        <div class="info-cell">
+            <label>Frame rate</label>
+            <span>30 FPS</span>
+        </div>
+        <div class="info-cell">
+            <label>Colormap</label>
+            <span>JET</span>
+        </div>
+        <div class="info-cell">
+            <label>Khoảng cách max</label>
+            <span>4.0 m</span>
+        </div>
+    </div>
+
+    <!-- Status -->
+    <div id="statusMsg">Camera chưa được kích hoạt</div>
+
+    <!-- Buttons -->
+    <div class="btn-row">
+        <button class="btn btn-start" id="btnStart" onclick="startDepth()">▶ Bật camera chiều sâu</button>
+        <button class="btn btn-stop"  id="btnStop"  onclick="stopDepth()" disabled>■ Tắt</button>
+        <button class="btn btn-back"  onclick="goBack()">← Trang chính</button>
+    </div>
+
+</div>
+
+<script>
+    let streaming = false;
+    let fpsTimer  = null;
+    let frameCount = 0;
+    let lastFpsTime = Date.now();
+
+    function setStatus(msg, color) {
+        const el = document.getElementById('statusMsg');
+        el.textContent = msg;
+        el.style.color  = color || '#8b949e';
+    }
+
+    function setCamBadge(state) {
+        // state: 'off' | 'on' | 'error'
+        const dot = document.getElementById('camDot');
+        const lbl = document.getElementById('camStatus');
+        dot.className = 'dot ' + (state === 'on' ? 'on' : state === 'error' ? 'err' : '');
+        lbl.textContent = state === 'on' ? 'Đang chạy' : state === 'error' ? 'Lỗi' : 'Chưa bật';
+    }
+
+    function startDepth() {
+        document.getElementById('btnStart').disabled = true;
+        setStatus('⏳ Đang khởi động depth pipeline...', '#58a6ff');
+
+        fetch('/depth_start', { method: 'POST' })
+            .then(r => r.text())
+            .then(txt => {
+                if (txt.toLowerCase().includes('not available') ||
+                    txt.toLowerCase().includes('lỗi')) {
+                    setStatus('❌ ' + txt, '#f85149');
+                    setCamBadge('error');
+                    document.getElementById('btnStart').disabled = false;
+                    return;
+                }
+                // Khởi động stream
+                const img = document.getElementById('depthImg');
+                img.src = '/depth_feed?' + Date.now();
+                img.style.display = 'block';
+                document.getElementById('placeholder').style.display = 'none';
+
+                img.onload = () => { /* first frame received */ };
+                img.onerror = () => {
+                    setStatus('❌ Mất kết nối stream', '#f85149');
+                    setCamBadge('error');
+                };
+
+                streaming = true;
+                setCamBadge('on');
+                setStatus('✅ Depth camera đang chạy', '#3fb950');
+                document.getElementById('btnStop').disabled  = false;
+                document.getElementById('btnStart').disabled = true;
+
+                startFpsCounter();
+            })
+            .catch(e => {
+                setStatus('❌ Không kết nối được server: ' + e, '#f85149');
+                setCamBadge('error');
+                document.getElementById('btnStart').disabled = false;
+            });
+    }
+
+    function stopDepth() {
+        streaming = false;
+        stopFpsCounter();
+
+        const img = document.getElementById('depthImg');
+        img.style.display = 'none';
+        img.src = '';
+        document.getElementById('placeholder').style.display = 'flex';
+
+        fetch('/depth_stop', { method: 'POST' })
+            .then(r => r.text())
+            .then(txt => {
+                setStatus('🔴 Depth camera đã tắt', '#8b949e');
+            })
+            .catch(() => {});
+
+        setCamBadge('off');
+        document.getElementById('btnStart').disabled = false;
+        document.getElementById('btnStop').disabled  = true;
+        document.getElementById('dispFps').textContent   = '—';
+        document.getElementById('centerDist').textContent = '—';
+    }
+
+    // FPS counter đo client-side (đếm ảnh MJPEG nhận được)
+    function startFpsCounter() {
+        const img = document.getElementById('depthImg');
+        frameCount = 0;
+        lastFpsTime = Date.now();
+
+        // Dùng polling /depth_status để lấy thông tin server-side
+        fpsTimer = setInterval(() => {
+            if (!streaming) return;
+            fetch('/depth_status')
+                .then(r => r.json())
+                .then(d => {
+                    document.getElementById('dispFps').textContent =
+                        d.fps !== undefined ? d.fps.toFixed(1) : '—';
+                    document.getElementById('centerDist').textContent =
+                        d.center_dist !== undefined
+                            ? (d.center_dist > 0 ? d.center_dist.toFixed(2) + ' m' : 'N/A')
+                            : '—';
+                })
+                .catch(() => {});
+        }, 1000);
+    }
+
+    function stopFpsCounter() {
+        if (fpsTimer) { clearInterval(fpsTimer); fpsTimer = null; }
+    }
+
+    function goBack() {
+        // Tắt camera khi rời trang
+        if (streaming) stopDepth();
+        setTimeout(() => { window.location.href = '/'; }, 300);
+    }
+
+    // Tắt camera khi đóng/reload tab
+    window.addEventListener('beforeunload', () => {
+        if (streaming) {
+            // sendBeacon đảm bảo request được gửi kể cả khi tab đóng
+            navigator.sendBeacon('/depth_stop');
+        }
+    });
+</script>
+</body>
+</html>

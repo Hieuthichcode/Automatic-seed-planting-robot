@@ -150,7 +150,7 @@
 </head>
 <body>
   <div class="container">
-    <h2>📍 ESP32 Real-time GPS Tracker</h2>
+    <h2>Hệ thống giám sát và điều khiển robot</h2>
 
     <div style="margin-top: 10px; text-align: center;">
       <strong>Yaw:</strong> <span id="yawValue">0.00</span>°
@@ -165,6 +165,8 @@
           <button id="btnStop" style="width:100%; margin-bottom:8px; background-color:#ff5252; color:white;" disabled>Dừng</button>
           <button id="btnDetection" style="width:100%; margin-bottom:8px; background-color:#4CAF50; color:white;" onclick="goToDetection()">🎯 Detection</button>
           <button id="btnLidar" style="width:100%; margin-bottom:8px; background-color:#9C27B0; color:white;" onclick="goToLidar()">📡 LIDAR</button>
+          <button id="btnArm" style="width:100%; margin-bottom:8px; background-color:#00BCD4; color:white;" onclick="goToArm()">🦾 Cánh tay</button>
+          <button id="btnDepth" style="width:100%; margin-bottom:8px; background-color:#1565C0; color:white;" onclick="goToDepth()">🔵 Depth Camera</button>
           <button id="btnConfig" style="width:100%; background-color:#FF9800; color:white;" onclick="goToConfig()">⚙️ Cấu hình</button>
         </div>
       </div>
@@ -220,7 +222,10 @@
   let statusUpdateInterval = null;
 
     function initMap() {
-      const location = { lat: 21.0278, lng: 105.8342 };
+      const location = {
+        lat: {{ DEFAULT_LATITUDE | tojson }},
+        lng: {{ DEFAULT_LONGITUDE | tojson }}
+      };
       map = new google.maps.Map(document.getElementById('map'), {
         zoom: 15,
         center: location,
@@ -601,12 +606,19 @@
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: params
           })
-          .then(r => r.text())
+          .then(async r => {
+            const msg = await r.text();
+            if (!r.ok) throw new Error(msg);
+            return msg;
+          })
           .then(msg => {
             console.log("[START ROUTE]", msg);
             startStatusUpdate();  // Bắt đầu cập nhật status
           })
           .catch(err => {
+            started = false;
+            paused = false;
+            updateControlButtons();
             updateDebugPanel("❌ Lỗi: " + err.message);
             console.error(err);
           });
@@ -670,6 +682,16 @@
     // Chuyển sang trang Cấu hình
     function goToConfig() {
       window.location.href = "/config";
+    }
+
+    // Chuyển sang trang điều khiển cánh tay
+    function goToArm() {
+      window.location.href = "/arm";
+    }
+
+    // Chuyển sang trang depth camera
+    function goToDepth() {
+      window.location.href = "/depth";
     }
   </script>
 
